@@ -1,58 +1,30 @@
 import SwiftUI
 
-/// The app is set in Helvetica Neue, tracked slightly tight.
+/// The app is set in SF Rounded — the roundest face that ships with iOS, and
+/// the one whose soft terminals match the wordmark's fat round letters.
 ///
-/// Helvetica Neue ships six upright weights — UltraLight, Thin, Light,
-/// Regular, Medium and Bold — so medium now has a face of its own instead of
-/// collapsing to regular. There is no semibold or black, so those round up to
-/// bold. Sizes mirror what iOS uses for each text style and are declared
-/// `relativeTo`, so Dynamic Type still scales the whole interface.
+/// It comes from the system rather than a font file, so unlike Helvetica it
+/// carries the full weight range and scales with Dynamic Type on its own.
 enum Typeface {
-    static func helvetica(_ weight: Font.Weight) -> String {
-        switch weight {
-        case .ultraLight:
-            return "HelveticaNeue-UltraLight"
-        case .thin:
-            return "HelveticaNeue-Thin"
-        case .light:
-            return "HelveticaNeue-Light"
-        case .medium:
-            return "HelveticaNeue-Medium"
-        case .semibold, .bold, .heavy, .black:
-            return "HelveticaNeue-Bold"
-        default:
-            return "HelveticaNeue"
-        }
-    }
+    static let design: Font.Design = .rounded
 
-    static func size(for style: Font.TextStyle) -> CGFloat {
-        switch style {
-        case .largeTitle: return 34
-        case .title: return 28
-        case .title2: return 22
-        case .title3: return 20
-        case .headline, .body: return 17
-        case .callout: return 16
-        case .subheadline: return 15
-        case .footnote: return 13
-        case .caption: return 12
-        case .caption2: return 11
-        @unknown default: return 17
-        }
-    }
+    /// SF Rounded is drawn with its own spacing and needs no tightening; the
+    /// negative tracking Helvetica wanted closes its round counters up.
+    static let tracking: CGFloat = 0
 }
 
 extension Font {
     static func app(_ style: Font.TextStyle, weight: Font.Weight = .regular) -> Font {
-        .custom(Typeface.helvetica(weight),
-                size: Typeface.size(for: style),
-                relativeTo: style)
+        .system(style, design: Typeface.design, weight: weight)
     }
 
+    /// `relativeTo` is kept for call-site symmetry. A system font at a fixed
+    /// size does not scale itself, so every caller passes a size that has
+    /// already been through `@ScaledMetric`.
     static func app(_ size: CGFloat,
                     weight: Font.Weight = .regular,
                     relativeTo style: Font.TextStyle = .body) -> Font {
-        .custom(Typeface.helvetica(weight), size: size, relativeTo: style)
+        .system(size: size, weight: weight, design: Typeface.design)
     }
 
     /// Kept so display sizing still lives behind one name.

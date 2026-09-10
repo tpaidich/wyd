@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var showingQuickPicker = false
 
     // The ring and its numeral scale with Dynamic Type instead of staying fixed.
-    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 220
+    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 182
     @ScaledMetric(relativeTo: .largeTitle) private var countFontSize: CGFloat = 48
 
     private let ringStroke: CGFloat = 26
@@ -59,23 +59,25 @@ struct ContentView: View {
                             Button {
                                 store.log(kind)
                             } label: {
-                                HStack(spacing: 7) {
+                                // Stacked rather than in a row: the icon gets to
+                                // be the size of an icon, and the label stops
+                                // competing with it for the tile's width.
+                                VStack(spacing: 6) {
                                     Image(systemName: kind.symbol)
-                                        .font(.app(.footnote, weight: .semibold))
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        Text(kind.label)
-                                            .font(.app(.footnote, weight: .semibold))
-                                            .lineLimit(1)
-                                        Text(Volume.label(store.volumeML(for: kind)))
-                                            .font(.app(.caption2))
-                                            .opacity(0.75)
-                                    }
+                                        .font(.app(.title3, weight: .semibold))
+                                    Text(kind.label)
+                                        .font(.app(.subheadline, weight: .semibold))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                    Text(Volume.label(store.volumeML(for: kind)))
+                                        .font(.app(.caption))
+                                        .opacity(0.75)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 11)
+                                .padding(.vertical, 15)
                                 .foregroundStyle(Brand.cream)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 13).fill(Brand.cobalt)
+                                    RoundedRectangle(cornerRadius: 18).fill(Brand.cobalt)
                                 )
                             }
                             .buttonStyle(.plain)

@@ -3,6 +3,7 @@ import SwiftUI
 /// What a single day actually looked like. This replaces the long "all days"
 /// list: the calendar carries the overview, and the detail is one tap away.
 struct DayDetailView: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var detailCountSize: CGFloat = 40
     let dateKey: String
     let record: DayRecord?
     let goalML: Int
@@ -15,7 +16,7 @@ struct DayDetailView: View {
                 Section {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(Glass.format(intake))
-                            .font(.display(40, weight: .bold))
+                            .font(.display(detailCountSize, weight: .bold))
                             .monospacedDigit()
                         Text("of \(Glass.format(goal)) glasses")
                             .font(.app(.subheadline))

@@ -17,9 +17,7 @@ struct WaterTrackerApp: App {
                     .transition(.opacity)
                 }
             }
-            // Helvetica Neue sits a touch loose by default; -0.5 tightens it
-            // without closing the counters up at small sizes.
-            .tracking(-0.5)
+            .tracking(Typeface.tracking)
         }
     }
 }
