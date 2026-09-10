@@ -61,6 +61,7 @@ struct MoreDrinksView: View {
                     }
                 }
             }
+            .wydForm()
             .navigationTitle("More drinks")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

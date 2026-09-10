@@ -18,7 +18,7 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            Brand.cobalt.ignoresSafeArea()
 
             VStack(spacing: 26) {
                 ZStack {
@@ -36,7 +36,7 @@ struct SplashView: View {
 
                     Image(systemName: "drop.fill")
                         .font(.system(size: 42))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Brand.cream)
                         .scaleEffect(x: 1 / max(dropScale, 0.6), y: dropScale)
                         .offset(y: dropY)
                         .opacity(dropOpacity)
@@ -44,11 +44,12 @@ struct SplashView: View {
                 .frame(width: 150, height: 150)
 
                 VStack(spacing: 4) {
-                    Text("Wyd")
-                        .font(.system(size: 40, weight: .bold))
+                    Text("wyd")
+                        .font(.system(size: 62, weight: .black, design: .rounded))
+                        .foregroundStyle(Brand.cream)
                     Text("What're You Drinking?")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundStyle(Brand.cream.opacity(0.85))
                 }
                 .opacity(titleOpacity)
             }

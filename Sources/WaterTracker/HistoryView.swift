@@ -11,17 +11,23 @@ struct HistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                streakRing
+            VStack(spacing: 18) {
+                Image("HistoryHeader")
+                    .renderable()
+                    .frame(maxWidth: 128)
+                    .foregroundStyle(Brand.ink)
+                    .accessibilityLabel("History")
+
+                summary
                 weekCurve
                 monthCalendar
-                summary
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 20)
+            .padding(.top, 4)
+            .padding(.bottom, 20)
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("History")
+        .background(Brand.ground)
+        .tint(Brand.ink)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { key in
             DayDetailView(dateKey: key, record: store.history[key], goalML: store.goalML)
@@ -29,70 +35,10 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Streak ring
-
-    /// The streak drawn as a ring closing on the next milestone, so the shape
-    /// itself carries the progress rather than just decorating a number.
-    private var streakRing: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .stroke(Color.orange.opacity(0.14), lineWidth: 14)
-
-                Circle()
-                    .trim(from: 0, to: milestoneProgress)
-                    .stroke(
-                        LinearGradient(colors: [.orange, .red],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.9), value: milestoneProgress)
-
-                VStack(spacing: 2) {
-                    Image(systemName: store.currentStreak > 0 ? "flame.fill" : "flame")
-                        .font(.title3)
-                        .foregroundStyle(store.currentStreak > 0 ? .orange : .secondary)
-                    Text("\(store.currentStreak)")
-                        .font(.display(44, weight: .bold))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    Text(store.currentStreak == 1 ? "day" : "days")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 168, height: 168)
-
-            Text(milestoneCaption)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 22)
-        .background(RoundedRectangle(cornerRadius: 22).fill(Color(.secondarySystemGroupedBackground)))
-    }
-
-    private var nextMilestone: Int {
-        [3, 7, 14, 30, 60, 100, 180, 365].first { $0 > store.currentStreak }
-            ?? store.currentStreak + 100
-    }
-
-    private var milestoneProgress: Double {
-        guard nextMilestone > 0 else { return 0 }
-        return min(Double(store.currentStreak) / Double(nextMilestone), 1)
-    }
-
-    private var milestoneCaption: String {
-        let remaining = nextMilestone - store.currentStreak
-        if store.currentStreak == 0 { return "Hit today's goal to start a streak" }
-        return "\(remaining) more to reach \(nextMilestone) · best \(store.bestStreak)"
-    }
-
     // MARK: - Week
 
     private var weekCurve: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             sectionTitle("Last 7 days")
 
             Chart(store.recentDays(7)) { day in
@@ -102,7 +48,7 @@ struct HistoryView: View {
                 )
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(
-                    LinearGradient(colors: [Color.cyan.opacity(0.55), Color.blue.opacity(0.05)],
+                    LinearGradient(colors: [Brand.cobalt.opacity(0.45), Brand.cobalt.opacity(0.04)],
                                    startPoint: .top, endPoint: .bottom)
                 )
 
@@ -111,7 +57,7 @@ struct HistoryView: View {
                     y: .value("Glasses", Double(day.intakeML) / Double(Glass.ml))
                 )
                 .interpolationMethod(.catmullRom)
-                .foregroundStyle(Color.blue)
+                .foregroundStyle(Brand.cobalt)
                 .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
 
                 RuleMark(y: .value("Goal", Double(store.goalML) / Double(Glass.ml)))
@@ -126,13 +72,20 @@ struct HistoryView: View {
             .frame(height: 160)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 22).fill(Color(.secondarySystemGroupedBackground)))
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Brand.ground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(Brand.ink.opacity(0.28), lineWidth: Brand.hairline)
+                )
+        )
     }
 
     // MARK: - Month
 
     private var monthCalendar: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(spacing: 14) {
             HStack {
                 Button {
                     step(by: -1)
@@ -193,9 +146,17 @@ struct HistoryView: View {
             Text("Tap a day to see what you drank.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 22).fill(Color(.secondarySystemGroupedBackground)))
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Brand.ground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(Brand.ink.opacity(0.28), lineWidth: Brand.hairline)
+                )
+        )
     }
 
     private struct MonthDay {
@@ -268,7 +229,8 @@ struct HistoryView: View {
 
     private var summary: some View {
         HStack(spacing: 12) {
-            statTile(value: "\(store.daysGoalMet)", caption: "days hit")
+            statTile(value: "\(store.currentStreak)",
+                     caption: store.currentStreak == 1 ? "day streak" : "day streak")
             statTile(value: Glass.format(store.averageIntake), caption: "avg glasses")
             statTile(value: Volume.format(store.averageIntake), caption: "avg oz")
         }
@@ -281,17 +243,19 @@ struct HistoryView: View {
                 .monospacedDigit()
             Text(caption)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .opacity(0.75)
         }
+        .foregroundStyle(Brand.cream)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color(.secondarySystemGroupedBackground)))
+        .background(RoundedRectangle(cornerRadius: 18).fill(Brand.cobalt))
     }
 
     private func sectionTitle(_ text: String) -> some View {
         Text(text)
             .font(.display(.subheadline))
             .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 
@@ -305,23 +269,20 @@ private struct DayCell: View {
 
     /// White once the water is deep enough to swallow dark text.
     private var dayLabelColor: Color {
-        if progress > 0.55 { return .white }
+        if progress > 0.55 { return Brand.cream }
         return isFuture ? Color.secondary.opacity(0.45) : Color.secondary
     }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 9)
-                .fill(Color.blue.opacity(isFuture ? 0.03 : 0.08))
+                .fill(Brand.cobalt.opacity(isFuture ? 0.05 : 0.12))
 
             GeometryReader { geometry in
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     Rectangle()
-                        .fill(
-                            LinearGradient(colors: [Color.cyan.opacity(0.85), Color.blue.opacity(0.95)],
-                                           startPoint: .top, endPoint: .bottom)
-                        )
+                        .fill(Brand.cobalt)
                         .frame(height: geometry.size.height * min(progress, 1))
                 }
             }
@@ -333,7 +294,7 @@ private struct DayCell: View {
                 .foregroundStyle(dayLabelColor)
 
             if metGoal {
-                RoundedRectangle(cornerRadius: 9).strokeBorder(Color.blue.opacity(0.5), lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: 9).strokeBorder(Brand.cobalt, lineWidth: 1.5)
             }
             if isToday {
                 RoundedRectangle(cornerRadius: 9).strokeBorder(Color.orange, lineWidth: 2)

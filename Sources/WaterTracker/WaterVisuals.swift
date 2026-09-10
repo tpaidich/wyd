@@ -36,7 +36,7 @@ struct WaveFillCircle: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.blue.opacity(0.08))
+                .fill(Brand.ground)
 
             if reduceMotion {
                 waterShape(phase: 0)
@@ -48,7 +48,7 @@ struct WaveFillCircle: View {
             }
 
             Circle()
-                .strokeBorder(Color.blue.opacity(0.16), lineWidth: 2)
+                .strokeBorder(Brand.ink, lineWidth: Brand.hairline)
         }
         .frame(width: diameter, height: diameter)
         .clipShape(Circle())
@@ -79,17 +79,7 @@ struct WaveFillCircle: View {
                 path.addLine(to: CGPoint(x: 0, y: size.height))
                 path.closeSubpath()
 
-                context.fill(
-                    path,
-                    with: .linearGradient(
-                        Gradient(colors: [
-                            Color.cyan.opacity(wave.opacity),
-                            Color.blue.opacity(wave.opacity),
-                        ]),
-                        startPoint: CGPoint(x: 0, y: level),
-                        endPoint: CGPoint(x: 0, y: size.height)
-                    )
-                )
+                context.fill(path, with: .color(Brand.cobalt.opacity(wave.opacity)))
             }
 
             drawBubbles(in: context, size: size, level: level, phase: phase)
@@ -139,7 +129,7 @@ struct RippleOverlay: View {
         ZStack {
             ForEach(0..<2, id: \.self) { index in
                 Circle()
-                    .stroke(Color.cyan.opacity(0.5), lineWidth: 2)
+                    .stroke(Brand.cobalt.opacity(0.45), lineWidth: Brand.hairline)
                     .scaleEffect(scale + CGFloat(index) * 0.18)
                     .opacity(opacity)
             }

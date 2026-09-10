@@ -36,6 +36,7 @@ struct DrinkSizesView: View {
                 }
             }
         }
+        .wydForm()
         .navigationTitle("Drink sizes")
         .navigationBarTitleDisplayMode(.inline)
     }

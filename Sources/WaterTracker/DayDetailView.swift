@@ -81,6 +81,7 @@ struct DayDetailView: View {
                     }
                 }
             }
+            .wydForm()
             .navigationTitle(WaterStore.displayName(for: dateKey))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

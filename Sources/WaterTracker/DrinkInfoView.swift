@@ -24,6 +24,7 @@ struct DrinkInfoView: View {
                 .padding(.vertical, 6)
             }
         } 
+        .wydForm()
         .navigationTitle("How drinks count")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {

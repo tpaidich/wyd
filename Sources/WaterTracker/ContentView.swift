@@ -9,14 +9,21 @@ struct ContentView: View {
     @State private var surge: Double = 0
 
     // The ring and its numeral scale with Dynamic Type instead of staying fixed.
-    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 220
-    @ScaledMetric(relativeTo: .largeTitle) private var countFontSize: CGFloat = 52
+    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 202
+    @ScaledMetric(relativeTo: .largeTitle) private var countFontSize: CGFloat = 48
 
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 10) {
+                Image("WydHeader")
+                    .renderable()
+                    .frame(maxWidth: 92)
+                    .foregroundStyle(Brand.ink)
+                    .padding(.top, -8)
+                    .accessibilityLabel("Wyd, what're you drinking")
+
                 streakBanner
 
                 ZStack {
@@ -45,6 +52,8 @@ struct ContentView: View {
                     .animation(.easeOut(duration: 0.4), value: store.progress)
                     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 }
+                // The glass is the focal point, so it gets room to breathe.
+                .padding(.vertical, 12)
 
                 Text(progressMessage)
                     .font(.callout)
@@ -61,7 +70,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                 }
 
-                VStack(spacing: 16) {
+                VStack(spacing: 11) {
                     bottleCard
 
                     HStack(spacing: 12) {
@@ -79,11 +88,14 @@ struct ContentView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color.blue.opacity(0.12))
-                                .foregroundStyle(.blue)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.vertical, 11)
+                                .foregroundStyle(Brand.ink)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Brand.radius)
+                                        .stroke(Brand.ink, lineWidth: Brand.hairline)
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
                     }
 
@@ -103,18 +115,16 @@ struct ContentView: View {
                     VStack(spacing: 12) { correctionButtons }
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 16)
+                .padding(.bottom, 2)
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.top, 0)
+                .padding(.bottom, 8)
                 .frame(maxWidth: .infinity)
             }
+            .background(Brand.ground)
+            .tint(Brand.ink)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Wyd")
-                        .font(.display(.headline))
-                }
 
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -167,13 +177,16 @@ struct ContentView: View {
             store.reset()
         }
         .buttonStyle(.bordered)
+        // The palette is two flat colours, but a destructive action still has
+        // to look destructive. This is the one sanctioned exception.
+        .tint(.red)
         .disabled(store.intakeML == 0)
     }
 
     private var streakBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: store.currentStreak > 0 ? "flame.fill" : "flame")
-                .foregroundStyle(store.currentStreak > 0 ? .orange : .secondary)
+                .foregroundStyle(store.currentStreak > 0 ? Brand.flame : Color.secondary)
             Text(streakMessage)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(store.currentStreak > 0 ? .primary : .secondary)
@@ -181,7 +194,7 @@ struct ContentView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(
-            Capsule().fill(store.currentStreak > 0 ? Color.orange.opacity(0.12) : Color.gray.opacity(0.12))
+            Capsule().fill(store.currentStreak > 0 ? Brand.flame.opacity(0.14) : Brand.cobalt.opacity(0.06))
         )
     }
 
@@ -205,7 +218,7 @@ struct ContentView: View {
 
     /// The bottle people actually sip from, logged in fractions.
     private var bottleCard: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 9) {
             HStack {
                 Label("Your bottle", systemImage: "waterbottle.fill")
                     .font(.subheadline.weight(.semibold))
@@ -228,11 +241,14 @@ struct ContentView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.cyan.opacity(0.14))
-                        .foregroundStyle(.teal)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.vertical, 9)
+                        .foregroundStyle(Brand.ink)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Brand.radius - 4)
+                                .stroke(Brand.ink, lineWidth: Brand.hairline)
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
@@ -242,9 +258,11 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
-        .background(Color.teal.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .padding(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: Brand.radius)
+                .stroke(Brand.ink.opacity(0.35), lineWidth: Brand.hairline)
+        )
     }
 
     private var bottleSummary: String {

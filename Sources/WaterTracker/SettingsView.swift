@@ -156,6 +156,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .wydForm()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: notifications.remindersEnabled) { _, enabled in
