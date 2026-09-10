@@ -18,6 +18,22 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
+                Image("SettingsHeader")
+                    .renderable()
+                    .frame(maxWidth: 140)
+                    .foregroundStyle(Brand.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, -10)
+                    .accessibilityLabel("Settings")
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            // The wordmark is a title, not a group of settings, so it does not
+            // need the gap a Form puts between two sections.
+            .listSectionSpacing(6)
+
+            Section {
                 Toggle("Automatic goal", isOn: $store.useAutoGoal)
 
                 if store.useAutoGoal {
@@ -28,7 +44,7 @@ struct SettingsView: View {
                             Text("Your body")
                             Spacer()
                             Text(Volume.label(store.profile.baseGoalML))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Brand.inkSoft)
                         }
                     }
 
@@ -36,7 +52,7 @@ struct SettingsView: View {
                         Text("Heat allowance")
                         Spacer()
                         Text(weatherBonusText)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Brand.inkSoft)
                     }
 
                     HStack {
@@ -50,11 +66,11 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("\(Int(goalInput)) oz")
-                                .font(.title3.weight(.semibold))
+                                .font(.app(.title3, weight: .semibold))
                             Spacer()
                             Text(glassesText)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.app(.subheadline))
+                                .foregroundStyle(Brand.inkSoft)
                         }
                         // Whole ounces, stepping by half a glass.
                         Slider(value: $goalInput, in: 16...170, step: 4) { editing in
@@ -67,35 +83,37 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Daily goal")
+                    .foregroundStyle(Brand.inkSoft)
             } footer: {
                 if store.useAutoGoal {
                     Text("Calculated from your body metrics, then topped up when it is hot or humid where you are.")
                 }
             }
+            .listRowBackground(Brand.rowFill)
 
             Section {
                 if weather.authorizationDenied {
                     Text("Location is off, so the heat allowance stays at 0 ml. Enable location for Wyd in the Settings app.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.app(.footnote))
+                        .foregroundStyle(Brand.inkSoft)
                 } else if let conditions = weather.conditions {
                     HStack {
                         Text(conditions.city)
                         Spacer()
                         Text(conditions.summary)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Brand.inkSoft)
                             .multilineTextAlignment(.trailing)
                     }
                     if conditions.isHeatwave {
                         Label("Extreme heat — drink more than usual", systemImage: "thermometer.sun.fill")
-                            .font(.footnote)
+                            .font(.app(.footnote))
                             .foregroundStyle(.orange)
                     }
                 } else if weather.isLoading {
                     HStack {
                         ProgressView()
                         Text("Checking local conditions…")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Brand.inkSoft)
                     }
                 } else {
                     Button("Use my location") { weather.refresh() }
@@ -103,14 +121,22 @@ struct SettingsView: View {
 
                 if let errorMessage = weather.errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.app(.footnote))
+                        .foregroundStyle(Brand.inkSoft)
                 }
             } header: {
                 Text("Weather")
+                    .foregroundStyle(Brand.inkSoft)
             }
+            .listRowBackground(Brand.rowFill)
 
             Section {
+                NavigationLink {
+                    QuickDrinksView(store: store)
+                } label: {
+                    Text("Quick drinks")
+                }
+
                 NavigationLink {
                     DrinkSizesView(store: store)
                 } label: {
@@ -122,7 +148,11 @@ struct SettingsView: View {
                 } label: {
                     Text("How drinks count")
                 }
+            } header: {
+                Text("Drinks")
+                    .foregroundStyle(Brand.inkSoft)
             }
+            .listRowBackground(Brand.rowFill)
 
             Section {
                 Toggle("Reminders", isOn: $notifications.remindersEnabled)
@@ -148,6 +178,7 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Reminders")
+                    .foregroundStyle(Brand.inkSoft)
             } footer: {
                 if notifications.remindersEnabled {
                     Text("Reminders at \(scheduleSummary).")
@@ -155,9 +186,12 @@ struct SettingsView: View {
                     Text("Get nudged through the day to keep drinking water.")
                 }
             }
+            .listRowBackground(Brand.rowFill)
         }
         .wydForm()
-        .navigationTitle("Settings")
+        // A Form opens with a wide top inset meant for a navigation title.
+        // The wordmark is the title here, so that space is dead.
+        .contentMargins(.top, 0, for: .scrollContent)
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: notifications.remindersEnabled) { _, enabled in
             guard enabled else {

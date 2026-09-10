@@ -31,13 +31,33 @@ final class NotificationManager: ObservableObject {
     private let endKey = "reminderEndHour"
     private let countKey = "remindersPerDay"
 
-    private let messages = [
-        "Time for a glass of water 💧",
-        "Hydration check — grab a drink!",
-        "Your body called. It wants water 🚰",
-        "Quick sip break?",
-        "Stay hydrated — log some water 💧"
-    ]
+    /// A different nudge for each hour, so six reminders a day never read as
+    /// the same alert repeating. Each one is written for what that hour
+    /// actually feels like.
+    private static func message(forHour hour: Int) -> (title: String, body: String) {
+        switch hour {
+        case 0...4:   return ("Still up?", "A glass now saves you a headache later.")
+        case 5:       return ("Early start", "Water before coffee. Your body has gone eight hours without.")
+        case 6:       return ("Morning", "You woke up dehydrated. Everyone does. Fix it first.")
+        case 7:       return ("Before the day starts", "One glass now is the easiest one you'll drink today.")
+        case 8:       return ("Coffee o'clock", "Have it. Just put a glass of water next to it.")
+        case 9:       return ("Mid-morning", "Refill the bottle while you're thinking about it.")
+        case 10:      return ("Halfway to lunch", "Good time for a top-up.")
+        case 11:      return ("Late morning", "Aim to be a third of the way there by noon.")
+        case 12:      return ("Lunch", "Drink something with it, not just after it.")
+        case 13:      return ("Post-lunch dip", "That heavy feeling is often thirst wearing a disguise.")
+        case 14:      return ("Afternoon", "The 3pm slump starts here. Water helps more than another coffee.")
+        case 15:      return ("Slump hour", "Before you reach for caffeine, try a glass.")
+        case 16:      return ("Late afternoon", "Two thirds of the day gone. How's the bottle looking?")
+        case 17:      return ("Winding down", "Catch up now so you're not chugging at bedtime.")
+        case 18:      return ("Evening", "Dinner's coming. Get a glass in beforehand.")
+        case 19:      return ("After dinner", "A steady sip beats a big glass right before bed.")
+        case 20:      return ("Settling in", "Last comfortable window before it costs you sleep.")
+        case 21:      return ("Nearly there", "Close the gap now rather than at midnight.")
+        case 22:      return ("Winding up", "Small glass. Big glass this late means a 3am trip.")
+        default:      return ("Late", "Just a sip if you need it. Tomorrow starts fresh.")
+        }
+    }
 
     init() {
         remindersEnabled = defaults.bool(forKey: enabledKey)
@@ -74,10 +94,11 @@ final class NotificationManager: ObservableObject {
         }
         guard enabled else { return }
 
-        for (index, hour) in hours.enumerated() {
+        for hour in hours {
+            let copy = Self.message(forHour: hour)
             let content = UNMutableNotificationContent()
-            content.title = "Wyd"
-            content.body = messages[index % messages.count]
+            content.title = copy.title
+            content.body = copy.body
             content.sound = .default
 
             var components = DateComponents()

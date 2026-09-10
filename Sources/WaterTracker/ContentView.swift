@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var weather = WeatherService()
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingMoreDrinks = false
+    @State private var showingQuickPicker = false
     @State private var surge: Double = 0
 
     // The ring and its numeral scale with Dynamic Type instead of staying fixed.
@@ -15,8 +16,10 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
+            GeometryReader { proxy in
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
+                VStack(spacing: 14) {
                 Image("WydHeader")
                     .renderable()
                     .frame(maxWidth: 92)
@@ -28,42 +31,28 @@ struct ContentView: View {
 
                 ZStack {
                     WaveFillCircle(progress: store.progress, diameter: ringDiameter, surge: surge)
+                        // A plain contact shadow, cast by the same light that
+                        // shades the orb. No colour, so nothing glows.
+                        .shadow(color: .black.opacity(0.2), radius: 10, x: 3, y: 8)
 
                     RippleOverlay(trigger: store.intakeML)
                         .frame(width: ringDiameter, height: ringDiameter)
 
-                    VStack(spacing: 2) {
-                        Text(Glass.format(store.intakeML))
-                            .font(.display(countFontSize, weight: .bold))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                            .animation(.snappy, value: store.intakeML)
-                            .foregroundStyle(waterlineColor(offset: 0))
-                        Text("of \(Glass.format(store.goalML)) glasses")
-                            .font(.subheadline)
-                            .foregroundStyle(waterlineColor(offset: 30, dimmed: true))
-                        Text("\(Volume.format(store.intakeML)) / \(Volume.label(store.goalML))")
-                            .font(.caption2)
-                            .monospacedDigit()
-                            .foregroundStyle(waterlineColor(offset: 54, dimmed: true))
-                            .padding(.top, 4)
-                    }
-                    .shadow(color: .black.opacity(0.14), radius: 4)
-                    .animation(.easeOut(duration: 0.4), value: store.progress)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                    orbReadout
+                        .animation(.easeOut(duration: 0.4), value: store.progress)
                 }
                 // The glass is the focal point, so it gets room to breathe.
-                .padding(.vertical, 12)
+                .padding(.vertical, 20)
 
                 Text(progressMessage)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.app(.callout))
+                    .foregroundStyle(Brand.inkSoft)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
                 if let note = weatherNote {
                     Label(note, systemImage: "thermometer.sun.fill")
-                        .font(.footnote)
+                        .font(.app(.footnote))
                         .foregroundStyle(.orange)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -73,29 +62,38 @@ struct ContentView: View {
                 VStack(spacing: 11) {
                     bottleCard
 
-                    HStack(spacing: 12) {
-                        ForEach(DrinkKind.primary) { kind in
+                    HStack(spacing: 10) {
+                        ForEach(store.quickDrinks) { kind in
                             Button {
                                 store.log(kind)
                             } label: {
-                                VStack(spacing: 6) {
+                                HStack(spacing: 7) {
                                     Image(systemName: kind.symbol)
-                                        .font(.title2)
-                                    Text(kind.label)
-                                        .font(.subheadline.weight(.semibold))
-                                    Text(Volume.label(store.volumeML(for: kind)))
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .font(.app(.footnote, weight: .semibold))
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text(kind.label)
+                                            .font(.app(.footnote, weight: .semibold))
+                                            .lineLimit(1)
+                                        Text(Volume.label(store.volumeML(for: kind)))
+                                            .font(.app(.caption2))
+                                            .opacity(0.75)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 11)
-                                .foregroundStyle(Brand.ink)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Brand.radius)
-                                        .stroke(Brand.ink, lineWidth: Brand.hairline)
+                                .foregroundStyle(Brand.cream)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 13).fill(Brand.cobalt)
                                 )
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    showingQuickPicker = true
+                                } label: {
+                                    Label("Change quick drinks", systemImage: "slider.horizontal.3")
+                                }
+                            }
                         }
                     }
 
@@ -103,23 +101,36 @@ struct ContentView: View {
                         showingMoreDrinks = true
                     } label: {
                         Label("More drinks", systemImage: "ellipsis.circle")
-                            .font(.subheadline.weight(.medium))
+                            .font(.app(.subheadline, weight: .medium))
                     }
                     .buttonStyle(.bordered)
                 }
                 .padding(.horizontal, 24)
 
-                // Side by side normally; stacked once large text sizes make them overflow.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 16) { correctionButtons }
-                    VStack(spacing: 12) { correctionButtons }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 2)
-                }
+                // Fills the viewport, so what follows starts below the fold.
+                .frame(minHeight: proxy.size.height, alignment: .top)
                 .padding(.top, 0)
                 .padding(.bottom, 8)
                 .frame(maxWidth: .infinity)
+
+                // Corrections live past the fold: a deliberate reach, not
+                // something to hit by accident while logging.
+                VStack(spacing: 10) {
+                    Text("Fix a mistake")
+                        .font(.app(.caption))
+                        .foregroundStyle(Brand.inkSoft)
+
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 16) { correctionButtons }
+                        VStack(spacing: 12) { correctionButtons }
+                    }
+                }
+                .padding(.top, 26)
+                .padding(.bottom, 34)
+                .padding(.horizontal, 24)
+                }
+            }
             }
             .background(Brand.ground)
             .tint(Brand.ink)
@@ -144,6 +155,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingMoreDrinks) {
             MoreDrinksView(store: store)
+        }
+        .sheet(isPresented: $showingQuickPicker) {
+            NavigationStack { QuickDrinksView(store: store) }
         }
         .task {
             await notifications.reschedule()
@@ -186,9 +200,9 @@ struct ContentView: View {
     private var streakBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: store.currentStreak > 0 ? "flame.fill" : "flame")
-                .foregroundStyle(store.currentStreak > 0 ? Brand.flame : Color.secondary)
+                .foregroundStyle(store.currentStreak > 0 ? Brand.flame : Brand.inkSoft)
             Text(streakMessage)
-                .font(.subheadline.weight(.medium))
+                .font(.app(.subheadline, weight: .medium))
                 .foregroundStyle(store.currentStreak > 0 ? .primary : .secondary)
         }
         .padding(.horizontal, 16)
@@ -206,46 +220,85 @@ struct ContentView: View {
         }
     }
 
-    /// Each line of the readout sits at a different height, so each one crosses
-    /// the waterline at its own moment. One shared threshold left the smaller
-    /// lines dark while they were already underwater.
-    private func waterlineColor(offset: CGFloat, dimmed: Bool = false) -> Color {
-        let threshold = 1 - (0.5 + offset / max(ringDiameter, 1))
-        let submerged = store.progress > threshold
-        if submerged { return .white.opacity(dimmed ? 0.85 : 1) }
-        return dimmed ? Color.secondary : Color.primary
+    /// The readout is cut by the waterline itself: ink where it sits in the air,
+    /// cream where it sits in the water. Flipping the whole readout at one
+    /// threshold always left it washed out for the stretch where the water was
+    /// crossing the digits.
+    private var orbReadout: some View {
+        ZStack {
+            readoutText(color: Brand.ink)
+
+            readoutText(color: Brand.cream)
+                .mask(
+                    VStack(spacing: 0) {
+                        Color.clear
+                        Color.black
+                            .frame(height: ringDiameter * CGFloat(min(max(store.progress, 0), 1)))
+                    }
+                    .frame(height: ringDiameter)
+                )
+        }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    }
+
+    private func readoutText(color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(Volume.format(store.intakeML))
+                .font(.display(countFontSize, weight: .bold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.snappy, value: store.intakeML)
+            Text("of \(Volume.label(store.goalML))")
+                .font(.app(.subheadline))
+        }
+        .foregroundStyle(color)
+        .accessibilityElement(children: .combine)
     }
 
     /// The bottle people actually sip from, logged in fractions.
+    ///
+    /// Each button shows the level it represents, so the row reads as one
+    /// bottle filling rather than four interchangeable chips.
     private var bottleCard: some View {
-        VStack(spacing: 9) {
+        VStack(spacing: 12) {
             HStack {
                 Label("Your bottle", systemImage: "waterbottle.fill")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.app(.subheadline, weight: .semibold))
+                    .foregroundStyle(Brand.ink)
                 Spacer()
                 Text(Volume.label(store.bottleSizeML))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.app(.subheadline))
+                    .foregroundStyle(Brand.inkSoft)
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: 9) {
                 ForEach(BottlePour.allCases) { pour in
                     Button {
                         store.logBottle(pour.fraction)
                     } label: {
-                        VStack(spacing: 3) {
+                        VStack(spacing: 5) {
+                            // A miniature bottle, filled to this fraction.
+                            ZStack(alignment: .bottom) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Brand.cobalt.opacity(0.16))
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Brand.cobalt)
+                                    .frame(height: 26 * pour.fraction)
+                            }
+                            .frame(width: 17, height: 26)
+
                             Text(pour.label)
-                                .font(.headline)
+                                .font(.app(.subheadline, weight: .semibold))
                             Text(Volume.label(Int(Double(store.bottleSizeML) * pour.fraction)))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .font(.app(.caption2))
+                                .foregroundStyle(Brand.inkSoft)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 9)
+                        .padding(.vertical, 11)
                         .foregroundStyle(Brand.ink)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Brand.radius - 4)
-                                .stroke(Brand.ink, lineWidth: Brand.hairline)
+                        .background(
+                            RoundedRectangle(cornerRadius: 13)
+                                .fill(Brand.ground)
                         )
                     }
                     .buttonStyle(.plain)
@@ -253,15 +306,14 @@ struct ContentView: View {
             }
 
             Text(bottleSummary)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.app(.caption2))
+                .foregroundStyle(Brand.inkSoft)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: Brand.radius)
-                .stroke(Brand.ink.opacity(0.35), lineWidth: Brand.hairline)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20).fill(Brand.cobalt.opacity(0.07))
         )
     }
 
@@ -289,7 +341,7 @@ struct ContentView: View {
         } else if store.progress >= 1.0 {
             return "Goal reached! Great job staying hydrated today."
         } else {
-            return "About \(Glass.format(store.remainingML)) more glasses to go."
+            return "\(Volume.label(store.remainingML)) to go, about \(Glass.format(store.remainingML)) glasses."
         }
     }
 }

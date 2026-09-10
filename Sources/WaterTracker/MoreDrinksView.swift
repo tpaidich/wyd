@@ -52,12 +52,13 @@ struct MoreDrinksView: View {
                                             .foregroundStyle(.primary)
                                         Spacer()
                                         Text(effectLabel(for: kind))
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                            .font(.app(.subheadline))
+                                            .foregroundStyle(Brand.inkSoft)
                                     }
                                 }
                             }
                         }
+                        .listRowBackground(Brand.rowFill)
                     }
                 }
             }

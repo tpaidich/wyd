@@ -35,7 +35,7 @@ struct SplashView: View {
                     }
 
                     Image(systemName: "drop.fill")
-                        .font(.system(size: 42))
+                        .font(.app(42, relativeTo: .largeTitle))
                         .foregroundStyle(Brand.cream)
                         .scaleEffect(x: 1 / max(dropScale, 0.6), y: dropScale)
                         .offset(y: dropY)
@@ -45,10 +45,10 @@ struct SplashView: View {
 
                 VStack(spacing: 4) {
                     Text("wyd")
-                        .font(.system(size: 62, weight: .black, design: .rounded))
+                        .font(.app(62, weight: .black, relativeTo: .largeTitle))
                         .foregroundStyle(Brand.cream)
                     Text("What're You Drinking?")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .font(.app(16, weight: .medium, relativeTo: .largeTitle))
                         .foregroundStyle(Brand.cream.opacity(0.85))
                 }
                 .opacity(titleOpacity)

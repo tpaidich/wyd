@@ -4,6 +4,10 @@ import SwiftUI
 /// logo, where a saturated cobalt carries a cream mark and nothing else.
 enum Brand {
     static let cobalt = Color(red: 0.102, green: 0.200, blue: 0.698)   // #1A33B2
+    /// Depth shades for the orb: water darkens with depth and catches light at
+    /// its surface, which is what stops the fill reading as a flat disc.
+    static let cobaltDeep  = Color(red: 0.043, green: 0.098, blue: 0.435)   // #0B1A6F
+    static let cobaltLight = Color(red: 0.302, green: 0.420, blue: 0.859)   // #4D6BDB
     static let cream  = Color(red: 0.973, green: 0.957, blue: 0.918)   // #F8F4EA
 
     /// Page background: cream in light, cobalt-black in dark.
@@ -19,6 +23,11 @@ enum Brand {
     /// not as iOS's grey cards.
     static let rowFill = Color(red: 0.102, green: 0.200, blue: 0.698).opacity(0.05)
 
+    /// System grey sits at roughly 3:1 on cream, which is below AA for body
+    /// text. These are tinted inks instead: same hierarchy, readable contrast.
+    static let inkSoft = Color("InkSoft")
+    static let inkFaint = Color("InkFaint")
+
     static let hairline = 2.0   // the logo's line is confident, not thin
     static let radius = 18.0
 }
@@ -31,7 +40,6 @@ extension View {
         self
             .scrollContentBackground(.hidden)
             .background(Brand.ground)
-            .listRowBackground(Brand.rowFill)
             .tint(Brand.ink)
     }
 }

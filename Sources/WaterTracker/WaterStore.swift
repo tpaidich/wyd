@@ -83,7 +83,13 @@ final class WaterStore: ObservableObject {
         }
     }
 
+    /// The three drinks on the home screen, in the order they appear.
+    @Published private(set) var quickDrinkIDs: [String] {
+        didSet { defaults.set(quickDrinkIDs, forKey: quickKey) }
+    }
+
     private let defaults = UserDefaults.standard
+    private let quickKey = "quickDrinkIDs"
     private let bottleKey = "bottleSizeML"
     private let sizesKey = "drinkSizeOverrides"
     private let historyKey = "history"
@@ -92,6 +98,11 @@ final class WaterStore: ObservableObject {
     private let autoGoalKey = "useAutoGoal"
 
     init() {
+        let storedQuick = defaults.stringArray(forKey: quickKey) ?? []
+        // Fall back to the original trio if nothing valid is stored.
+        let valid = storedQuick.filter { DrinkKind(rawValue: $0) != nil }
+        quickDrinkIDs = valid.isEmpty ? DrinkKind.primary.map(\.rawValue) : valid
+
         let storedBottle = defaults.integer(forKey: bottleKey)
         bottleSizeML = storedBottle == 0 ? 946 : storedBottle   // 32 oz default
 
@@ -160,6 +171,34 @@ final class WaterStore: ObservableObject {
             persistHistory()
         }
         syncTodayGoal()
+    }
+
+    var quickDrinks: [DrinkKind] {
+        quickDrinkIDs.compactMap(DrinkKind.init(rawValue:))
+    }
+
+    static let quickDrinkLimit = 3
+
+    /// Adding a fourth pushes out the one chosen longest ago, so picking a new
+    /// favourite never requires deselecting something first.
+    func toggleQuickDrink(_ kind: DrinkKind) {
+        if let index = quickDrinkIDs.firstIndex(of: kind.rawValue) {
+            guard quickDrinkIDs.count > 1 else { return }
+            quickDrinkIDs.remove(at: index)
+        } else {
+            quickDrinkIDs.append(kind.rawValue)
+            if quickDrinkIDs.count > Self.quickDrinkLimit {
+                quickDrinkIDs.removeFirst()
+            }
+        }
+    }
+
+    func reorderQuickDrinks(from source: IndexSet, to destination: Int) {
+        quickDrinkIDs.move(fromOffsets: source, toOffset: destination)
+    }
+
+    func isQuickDrink(_ kind: DrinkKind) -> Bool {
+        quickDrinkIDs.contains(kind.rawValue)
     }
 
     /// The size this drink is logged at, honouring any edit the user made.

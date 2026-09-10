@@ -90,7 +90,7 @@ struct HistoryView: View {
                 Button {
                     step(by: -1)
                 } label: {
-                    Image(systemName: "chevron.left").font(.subheadline.weight(.semibold))
+                    Image(systemName: "chevron.left").font(.app(.subheadline, weight: .semibold))
                 }
 
                 Spacer()
@@ -104,7 +104,7 @@ struct HistoryView: View {
                 Button {
                     step(by: 1)
                 } label: {
-                    Image(systemName: "chevron.right").font(.subheadline.weight(.semibold))
+                    Image(systemName: "chevron.right").font(.app(.subheadline, weight: .semibold))
                 }
                 .disabled(isShowingCurrentMonth)
             }
@@ -112,8 +112,8 @@ struct HistoryView: View {
             HStack(spacing: 8) {
                 ForEach(weekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.app(.caption2))
+                        .foregroundStyle(Brand.inkSoft)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -144,8 +144,8 @@ struct HistoryView: View {
             }
 
             Text("Tap a day to see what you drank.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.app(.caption2))
+                .foregroundStyle(Brand.inkFaint)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(16)
@@ -242,7 +242,7 @@ struct HistoryView: View {
                 .font(.display(.title2))
                 .monospacedDigit()
             Text(caption)
-                .font(.caption2)
+                .font(.app(.caption2))
                 .opacity(0.75)
         }
         .foregroundStyle(Brand.cream)
@@ -254,7 +254,7 @@ struct HistoryView: View {
     private func sectionTitle(_ text: String) -> some View {
         Text(text)
             .font(.display(.subheadline))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Brand.inkSoft)
             .frame(maxWidth: .infinity, alignment: .center)
     }
 }
@@ -270,7 +270,7 @@ private struct DayCell: View {
     /// White once the water is deep enough to swallow dark text.
     private var dayLabelColor: Color {
         if progress > 0.55 { return Brand.cream }
-        return isFuture ? Color.secondary.opacity(0.45) : Color.secondary
+        return isFuture ? Brand.inkFaint.opacity(0.5) : Brand.inkSoft
     }
 
     var body: some View {

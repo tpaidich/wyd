@@ -12,7 +12,7 @@ struct DrinkSizesView: View {
                         Text("Bottle")
                         Spacer()
                         Text("\(Int(Volume.oz(store.bottleSizeML).rounded())) oz")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Brand.inkSoft)
                     }
                 }
             } header: {
@@ -20,6 +20,7 @@ struct DrinkSizesView: View {
             } footer: {
                 Text("A full bottle is \(Glass.format(store.bottleSizeML)) glasses.")
             }
+            .listRowBackground(Brand.rowFill)
 
             ForEach(DrinkCategory.allCases) { category in
                 Section(category.label) {
@@ -29,11 +30,12 @@ struct DrinkSizesView: View {
                                 Text(kind.label)
                                 Spacer()
                                 Text("\(Int(Volume.oz(store.volumeML(for: kind)).rounded())) oz")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Brand.inkSoft)
                             }
                         }
                     }
                 }
+                .listRowBackground(Brand.rowFill)
             }
         }
         .wydForm()

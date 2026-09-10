@@ -1,9 +1,14 @@
 import SwiftUI
 
-/// A glass of water that actually fills. Two sine waves at different speeds
-/// and amplitudes read as a moving surface rather than one sliding shape, and
-/// the level tracks the day's progress. This replaces the progress ring: a
-/// hydration app should look like water, not like a fitness dial.
+/// A glass orb with water sloshing inside it. Two sine waves at different
+/// speeds and amplitudes read as a moving surface rather than one sliding
+/// shape, a slow tilt tips the whole waterline side to side, and the level
+/// tracks the day's progress. This replaces the progress ring: a hydration app
+/// should look like water, not like a fitness dial.
+///
+/// The roundness comes from four cheap cues stacked in order — a lit interior,
+/// water that darkens with depth, an elliptical surface seen slightly from
+/// above, and a rim that falls into shadow away from the light.
 struct WaveFillCircle: View {
     var progress: Double
     var diameter: CGFloat
@@ -33,10 +38,22 @@ struct WaveFillCircle: View {
         Wave(amplitude: 5, frequency: 1.6, speed: -0.85, opacity: 0.85),
     ]
 
+    /// Light comes from the upper left; every highlight and shadow below agrees
+    /// with this one point so the sphere holds together.
+    private static let lightSource = UnitPoint(x: 0.33, y: 0.28)
+
     var body: some View {
         ZStack {
+            // The dry upper half of the orb, lit from inside the glass.
             Circle()
-                .fill(Brand.ground)
+                .fill(
+                    RadialGradient(
+                        colors: [.white, Brand.ground, Brand.ground.opacity(0.7)],
+                        center: Self.lightSource,
+                        startRadius: 0,
+                        endRadius: diameter * 0.8
+                    )
+                )
 
             if reduceMotion {
                 waterShape(phase: 0)
@@ -47,8 +64,37 @@ struct WaveFillCircle: View {
                 }
             }
 
+            // Curvature: everything away from the light falls off towards the
+            // rim, water included, which is what turns the disc into a ball.
             Circle()
-                .strokeBorder(Brand.ink, lineWidth: Brand.hairline)
+                .fill(
+                    RadialGradient(
+                        colors: [.clear, .clear, Brand.ink.opacity(0.30)],
+                        center: Self.lightSource,
+                        startRadius: diameter * 0.06,
+                        endRadius: diameter * 0.62
+                    )
+                )
+
+            // The specular hit, where the light strikes the glass head on.
+            Ellipse()
+                .fill(.white.opacity(0.6))
+                .frame(width: diameter * 0.3, height: diameter * 0.19)
+                .rotationEffect(.degrees(-28))
+                .offset(x: -diameter * 0.2, y: -diameter * 0.26)
+                .blur(radius: diameter * 0.05)
+
+            // Light wrapping the far side of the glass.
+            Circle()
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.clear, .clear, .white.opacity(0.55)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: diameter * 0.035
+                )
+                .blur(radius: diameter * 0.022)
         }
         .frame(width: diameter, height: diameter)
         .clipShape(Circle())
@@ -57,21 +103,31 @@ struct WaveFillCircle: View {
 
     private func waterShape(phase: Double) -> some View {
         Canvas { context, size in
-            // A tiny sliver of water shows even at zero, so the glass never
+            // A tiny sliver of water shows even at zero, so the orb never
             // looks broken, and a full day sits just above the rim.
             let level = size.height * (1 - CGFloat(min(max(progress, 0.02), 1.0)))
+
+            // The whole body of water tips slowly, and tips harder for a moment
+            // after a drink lands. This is the slosh; the waves ride on top.
+            let tiltLimit = size.height * 0.035
+            let tilt = reduceMotion ? 0 : sin(phase * 0.62) * tiltLimit * (1 + CGFloat(surge) * 1.5)
 
             for wave in waves {
                 let amplitude = wave.amplitude * (1 + CGFloat(surge) * 1.8)
                 var path = Path()
-                path.move(to: CGPoint(x: 0, y: level))
-
                 var x: CGFloat = 0
+                var started = false
+
                 while x <= size.width {
                     let relative = x / size.width
                     let angle = relative * .pi * 2 * wave.frequency + phase * wave.speed * 2
-                    let y = level + sin(angle) * amplitude
-                    path.addLine(to: CGPoint(x: x, y: y))
+                    let y = level + (relative - 0.5) * 2 * tilt + sin(angle) * amplitude
+                    if started {
+                        path.addLine(to: CGPoint(x: x, y: y))
+                    } else {
+                        path.move(to: CGPoint(x: x, y: y))
+                        started = true
+                    }
                     x += 2
                 }
 
@@ -79,11 +135,59 @@ struct WaveFillCircle: View {
                 path.addLine(to: CGPoint(x: 0, y: size.height))
                 path.closeSubpath()
 
-                context.fill(path, with: .color(Brand.cobalt.opacity(wave.opacity)))
+                // Deep water is darker than the surface. Without this the fill
+                // is a flat shape no matter how the top edge moves.
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            Brand.cobalt.opacity(wave.opacity),
+                            Brand.cobaltDeep.opacity(wave.opacity),
+                        ]),
+                        startPoint: CGPoint(x: 0, y: level - size.height * 0.1),
+                        endPoint: CGPoint(x: 0, y: size.height)
+                    )
+                )
             }
 
+            drawSurface(in: context, size: size, level: level, tilt: tilt)
             drawBubbles(in: context, size: size, level: level, phase: phase)
         }
+    }
+
+    /// The top face of the water, drawn as an ellipse because the orb is being
+    /// looked at from slightly above. Its lower edge meets the front waterline,
+    /// so what shows is the far half of the surface receding into the glass.
+    private func drawSurface(in context: GraphicsContext, size: CGSize, level: CGFloat, tilt: CGFloat) {
+        let radius = size.width / 2
+        let offsetFromCentre = level - radius
+        // How wide the orb is at the waterline; zero once the level clears it.
+        let halfChord = sqrt(max(radius * radius - offsetFromCentre * offsetFromCentre, 0))
+        guard halfChord > 4 else { return }
+
+        let depth = min(size.height * 0.1, halfChord * 0.5)
+        let rect = CGRect(
+            x: radius - halfChord,
+            y: level - depth + tilt * 0.15,
+            width: halfChord * 2,
+            height: depth * 2
+        )
+
+        context.fill(
+            Path(ellipseIn: rect),
+            with: .linearGradient(
+                Gradient(colors: [Brand.cobaltLight.opacity(0.9), Brand.cobalt.opacity(0.55)]),
+                startPoint: CGPoint(x: 0, y: rect.minY),
+                endPoint: CGPoint(x: 0, y: rect.maxY)
+            )
+        )
+
+        // A bright meniscus where the water climbs the glass.
+        context.stroke(
+            Path(ellipseIn: rect),
+            with: .color(.white.opacity(0.35)),
+            lineWidth: 1.5
+        )
     }
 
     /// Bubbles rise from the base and fade as they near the surface, which is

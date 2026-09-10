@@ -18,8 +18,8 @@ struct DayDetailView: View {
                             .font(.display(40, weight: .bold))
                             .monospacedDigit()
                         Text("of \(Glass.format(goal)) glasses")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(.app(.subheadline))
+                            .foregroundStyle(Brand.inkSoft)
                     }
 
                     ProgressView(value: min(progress, 1))
@@ -27,28 +27,29 @@ struct DayDetailView: View {
 
                     HStack {
                         Text(Volume.label(intake))
-                            .font(.subheadline)
+                            .font(.app(.subheadline))
                             .monospacedDigit()
                         Spacer()
                         if metGoal {
                             Label("Goal met", systemImage: "checkmark.circle.fill")
-                                .font(.subheadline)
+                                .font(.app(.subheadline))
                                 .foregroundStyle(.blue)
                         } else if intake > 0 {
                             Text("\(Volume.label(max(0, goal - intake))) short")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.app(.subheadline))
+                                .foregroundStyle(Brand.inkSoft)
                         }
                     }
                 }
+                .listRowBackground(Brand.rowFill)
 
                 Section("Drinks") {
                     if entries.isEmpty {
                         Text(intake > 0
                              ? "This day was logged before drinks were itemised."
                              : "Nothing logged on this day.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(.app(.subheadline))
+                            .foregroundStyle(Brand.inkSoft)
                     } else {
                         ForEach(entries.reversed()) { entry in
                             HStack(spacing: 12) {
@@ -59,8 +60,8 @@ struct DayDetailView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.kind.label)
                                     Text(entry.time, style: .time)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .font(.app(.caption2))
+                                        .foregroundStyle(Brand.inkSoft)
                                 }
 
                                 Spacer()
@@ -70,7 +71,7 @@ struct DayDetailView: View {
                                         .monospacedDigit()
                                     if entry.hydrationML != entry.volumeML {
                                         Text("counts \(Volume.label(entry.hydrationML))")
-                                            .font(.caption2)
+                                            .font(.app(.caption2))
                                             .foregroundStyle(
                                                 entry.hydrationML < 0 ? .orange : .secondary
                                             )
@@ -80,6 +81,7 @@ struct DayDetailView: View {
                         }
                     }
                 }
+                .listRowBackground(Brand.rowFill)
             }
             .wydForm()
             .navigationTitle(WaterStore.displayName(for: dateKey))
