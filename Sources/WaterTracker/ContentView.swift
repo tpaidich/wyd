@@ -7,11 +7,14 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingMoreDrinks = false
     @State private var showingQuickPicker = false
-    @State private var surge: Double = 0
 
     // The ring and its numeral scale with Dynamic Type instead of staying fixed.
-    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 202
+    @ScaledMetric(relativeTo: .largeTitle) private var ringDiameter: CGFloat = 220
     @ScaledMetric(relativeTo: .largeTitle) private var countFontSize: CGFloat = 48
+
+    private let ringStroke: CGFloat = 26
+    /// Radius of the path the stroke is centred on.
+    private var ringRadius: CGFloat { (ringDiameter - ringStroke) / 2 }
 
 
     var body: some View {
@@ -29,20 +32,9 @@ struct ContentView: View {
 
                 streakBanner
 
-                ZStack {
-                    WaveFillCircle(progress: store.progress, diameter: ringDiameter, surge: surge)
-                        // A plain contact shadow, cast by the same light that
-                        // shades the orb. No colour, so nothing glows.
-                        .shadow(color: .black.opacity(0.2), radius: 10, x: 3, y: 8)
-
-                    RippleOverlay(trigger: store.intakeML)
-                        .frame(width: ringDiameter, height: ringDiameter)
-
-                    orbReadout
-                        .animation(.easeOut(duration: 0.4), value: store.progress)
-                }
-                // The glass is the focal point, so it gets room to breathe.
-                .padding(.vertical, 20)
+                hydrationRing
+                    // The ring is the focal point, so it gets room to breathe.
+                    .padding(.vertical, 16)
 
                 Text(progressMessage)
                     .font(.app(.callout))
@@ -163,11 +155,6 @@ struct ContentView: View {
             await notifications.reschedule()
             weather.refreshIfStale()
         }
-        .onChange(of: store.intakeML) { _, _ in
-            // The splash builds fast and settles slowly, the way water does.
-            withAnimation(.easeOut(duration: 0.18)) { surge = 1 }
-            withAnimation(.easeInOut(duration: 1.5).delay(0.18)) { surge = 0 }
-        }
         .onChange(of: weather.conditions) { _, conditions in
             store.weatherBonusML = conditions?.extraML ?? 0
         }
@@ -220,25 +207,75 @@ struct ContentView: View {
         }
     }
 
-    /// The readout is cut by the waterline itself: ink where it sits in the air,
-    /// cream where it sits in the water. Flipping the whole readout at one
-    /// threshold always left it washed out for the stretch where the water was
-    /// crossing the digits.
-    private var orbReadout: some View {
-        ZStack {
-            readoutText(color: Brand.ink)
+    /// Progress reads on the ring alone. Inside stays the page's own cream, so
+    /// the arc is the only thing carrying colour.
+    ///
+    /// The stroke is shaded like a length of tube rather than painted flat: a
+    /// diagonal gradient across it, a highlight riding its outer edge, a darker
+    /// line along the inner edge, and a shadow underneath.
+    private var hydrationRing: some View {
+        let fraction = min(max(store.progress, 0), 1)
 
-            readoutText(color: Brand.cream)
-                .mask(
-                    VStack(spacing: 0) {
-                        Color.clear
-                        Color.black
-                            .frame(height: ringDiameter * CGFloat(min(max(store.progress, 0), 1)))
-                    }
-                    .frame(height: ringDiameter)
-                )
+        return ZStack {
+            Circle()
+                .stroke(Brand.cobalt.opacity(0.12), lineWidth: ringStroke)
+
+            jellyArc(fraction: fraction)
+
+            RippleOverlay(trigger: store.intakeML)
+                .frame(width: ringDiameter - ringStroke * 2, height: ringDiameter - ringStroke * 2)
+
+            readoutText(color: Brand.ink)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         }
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .frame(width: ringDiameter, height: ringDiameter)
+        .animation(.easeOut(duration: 0.5), value: fraction)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue("\(Int(fraction * 100)) percent of today's goal")
+    }
+
+    private func jellyArc(fraction: Double) -> some View {
+        // Both inner lines are scaled copies of the same arc, so they follow the
+        // curve exactly. Scaling by a quarter-stroke lands them inside the tube.
+        let outerScale = (ringRadius + ringStroke * 0.26) / ringRadius
+        let innerScale = (ringRadius - ringStroke * 0.30) / ringRadius
+
+        return arc(fraction)
+            .stroke(
+                LinearGradient(
+                    colors: [Brand.cobaltLight, Brand.cobalt, Brand.cobaltDeep],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                style: StrokeStyle(lineWidth: ringStroke, lineCap: .round)
+            )
+            .overlay {
+                ZStack {
+                    arc(fraction)
+                        .stroke(Brand.cream.opacity(0.42),
+                                style: StrokeStyle(lineWidth: ringStroke * 0.22, lineCap: .round))
+                        .scaleEffect(outerScale)
+                        .blur(radius: 2.5)
+
+                    arc(fraction)
+                        .stroke(Brand.cobaltDeep.opacity(0.40),
+                                style: StrokeStyle(lineWidth: ringStroke * 0.20, lineCap: .round))
+                        .scaleEffect(innerScale)
+                        .blur(radius: 3)
+                }
+                // Keeps both lines inside the tube instead of spilling past its
+                // rounded caps.
+                .mask(
+                    arc(fraction)
+                        .stroke(style: StrokeStyle(lineWidth: ringStroke, lineCap: .round))
+                )
+            }
+            .shadow(color: Brand.cobaltDeep.opacity(0.30), radius: 7, y: 4)
+    }
+
+    private func arc(_ fraction: Double) -> some Shape {
+        // Rotated so it starts at twelve o'clock rather than three.
+        Circle().trim(from: 0, to: fraction).rotation(.degrees(-90))
     }
 
     private func readoutText(color: Color) -> some View {

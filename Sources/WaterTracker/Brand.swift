@@ -4,11 +4,12 @@ import SwiftUI
 /// logo, where a saturated cobalt carries a cream mark and nothing else.
 enum Brand {
     static let cobalt = Color(red: 0.102, green: 0.200, blue: 0.698)   // #1A33B2
-    /// Depth shades for the orb: water darkens with depth and catches light at
-    /// its surface, which is what stops the fill reading as a flat disc.
-    static let cobaltDeep  = Color(red: 0.043, green: 0.098, blue: 0.435)   // #0B1A6F
-    static let cobaltLight = Color(red: 0.302, green: 0.420, blue: 0.859)   // #4D6BDB
     static let cream  = Color(red: 0.973, green: 0.957, blue: 0.918)   // #F8F4EA
+
+    /// Two steps either side of cobalt. Used only to round the progress ring's
+    /// stroke into a tube; the rest of the app stays flat.
+    static let cobaltLight = Color(red: 0.302, green: 0.420, blue: 0.859)   // #4D6BDB
+    static let cobaltDeep  = Color(red: 0.043, green: 0.098, blue: 0.435)   // #0B1A6F
 
     /// Page background: cream in light, cobalt-black in dark.
     static let ground = Color("Ground")

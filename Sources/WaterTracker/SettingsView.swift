@@ -87,6 +87,7 @@ struct SettingsView: View {
             } footer: {
                 if store.useAutoGoal {
                     Text("Calculated from your body metrics, then topped up when it is hot or humid where you are.")
+                        .foregroundStyle(Brand.inkSoft)
                 }
             }
             .listRowBackground(Brand.rowFill)
@@ -182,8 +183,10 @@ struct SettingsView: View {
             } footer: {
                 if notifications.remindersEnabled {
                     Text("Reminders at \(scheduleSummary).")
+                        .foregroundStyle(Brand.inkSoft)
                 } else {
                     Text("Get nudged through the day to keep drinking water.")
+                        .foregroundStyle(Brand.inkSoft)
                 }
             }
             .listRowBackground(Brand.rowFill)

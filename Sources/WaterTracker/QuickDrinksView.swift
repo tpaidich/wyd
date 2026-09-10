@@ -17,6 +17,7 @@ struct QuickDrinksView: View {
                 Text("On the home screen")
             } footer: {
                 Text("Drag to reorder. Choosing a fourth replaces whichever you picked longest ago.")
+                    .foregroundStyle(Brand.inkSoft)
             }
             .listRowBackground(Brand.rowFill)
 

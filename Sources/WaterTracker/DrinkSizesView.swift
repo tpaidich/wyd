@@ -19,6 +19,7 @@ struct DrinkSizesView: View {
                 Text("Your bottle")
             } footer: {
                 Text("A full bottle is \(Glass.format(store.bottleSizeML)) glasses.")
+                    .foregroundStyle(Brand.inkSoft)
             }
             .listRowBackground(Brand.rowFill)
 
