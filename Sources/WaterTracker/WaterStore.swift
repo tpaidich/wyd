@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftData
 
 struct DayRecord: Codable, Identifiable {
     let date: String
@@ -37,8 +38,16 @@ struct DayRecord: Codable, Identifiable {
 }
 
 final class WaterStore: ObservableObject {
-    @Published private(set) var history: [String: DayRecord] = [:]
+    /// Today, as a value. Views read this rather than the model objects, so a
+    /// fetch never has to happen inside a `body`.
+    @Published private(set) var today: DayRecord
     @Published private(set) var todayKey: String = WaterStore.key(for: Date())
+
+    /// Both are read several times per render, so they are cached and
+    /// recomputed on write rather than queried from `body`.
+    @Published private(set) var currentStreak: Int = 0
+    @Published private(set) var averageIntake: Int = 0
+
     /// Body metrics the automatic goal is derived from.
     @Published var profile: UserProfile {
         didSet {
@@ -88,16 +97,25 @@ final class WaterStore: ObservableObject {
         didSet { defaults.set(quickDrinkIDs, forKey: quickKey) }
     }
 
+    // Days live in SwiftData; settings are a fixed handful of values and stay
+    // in UserDefaults, which is the right size of tool for them.
+    private let container: ModelContainer
+    private let context: ModelContext
+
     private let defaults = UserDefaults.standard
     private let quickKey = "quickDrinkIDs"
     private let bottleKey = "bottleSizeML"
     private let sizesKey = "drinkSizeOverrides"
     private let historyKey = "history"
+    private let migratedKey = "historyMigratedToSwiftData"
     private let goalKey = "goalML"
     private let profileKey = "profile"
     private let autoGoalKey = "useAutoGoal"
 
-    init() {
+    init(container: ModelContainer = Persistence.container()) {
+        self.container = container
+        self.context = ModelContext(container)
+
         let storedQuick = defaults.stringArray(forKey: quickKey) ?? []
         // Fall back to the original trio if nothing valid is stored.
         let valid = storedQuick.filter { DrinkKind(rawValue: $0) != nil }
@@ -124,10 +142,9 @@ final class WaterStore: ObservableObject {
         // Default to automatic unless the user has explicitly turned it off.
         useAutoGoal = defaults.object(forKey: autoGoalKey) as? Bool ?? true
 
-        if let data = defaults.data(forKey: historyKey),
-           let decoded = try? JSONDecoder().decode([String: DayRecord].self, from: data) {
-            history = decoded
-        }
+        today = DayRecord(date: WaterStore.key(for: Date()), intakeML: 0, goalML: 0)
+
+        migrateHistoryIfNeeded()
         refreshDay()
     }
 
@@ -137,21 +154,63 @@ final class WaterStore: ObservableObject {
         return min(profile.baseGoalML + weatherBonusML, 8000)
     }
 
-    private func syncTodayGoal() {
-        var record = todayRecord
-        guard record.goalML != goalML else { return }
-        record.goalML = goalML
-        history[todayKey] = record
-        persistHistory()
+    // MARK: - Migration
+
+    /// Moves the single `history` blob into SwiftData, once. The blob is left
+    /// in place rather than deleted: if this release turns out to be wrong,
+    /// the user's days are still sitting there.
+    private func migrateHistoryIfNeeded() {
+        guard !defaults.bool(forKey: migratedKey) else { return }
+        defer { defaults.set(true, forKey: migratedKey) }
+
+        guard let data = defaults.data(forKey: historyKey),
+              let decoded = try? JSONDecoder().decode([String: DayRecord].self, from: data)
+        else { return }
+
+        for record in decoded.values {
+            let day = DayLog(date: record.date, intakeML: record.intakeML, goalML: record.goalML)
+            context.insert(day)
+            for entry in record.entries {
+                let drink = DrinkLog(entry: entry)
+                drink.day = day
+                context.insert(drink)
+            }
+        }
+        try? context.save()
+    }
+
+    // MARK: - Fetching
+
+    private func dayLog(for key: String) -> DayLog? {
+        var descriptor = FetchDescriptor<DayLog>(predicate: #Predicate { $0.date == key })
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
+    /// The day, creating it if this is the first time it has been touched.
+    private func ensureDayLog(for key: String) -> DayLog {
+        if let existing = dayLog(for: key) { return existing }
+        let day = DayLog(date: key, intakeML: 0, goalML: goalML)
+        context.insert(day)
+        return day
+    }
+
+    /// A day as a value, or nil if nothing was ever logged that day.
+    func record(for key: String) -> DayRecord? {
+        dayLog(for: key)?.snapshot
+    }
+
+    private func days(withKeys keys: [String]) -> [String: DayLog] {
+        let descriptor = FetchDescriptor<DayLog>(predicate: #Predicate { keys.contains($0.date) })
+        let found = (try? context.fetch(descriptor)) ?? []
+        return Dictionary(uniqueKeysWithValues: found.map { ($0.date, $0) })
     }
 
     // MARK: - Today
 
-    var todayRecord: DayRecord {
-        history[todayKey] ?? DayRecord(date: todayKey, intakeML: 0, goalML: goalML)
-    }
+    var todayRecord: DayRecord { today }
 
-    var intakeML: Int { todayRecord.intakeML }
+    var intakeML: Int { today.intakeML }
 
     var progress: Double {
         guard goalML > 0 else { return 0 }
@@ -160,18 +219,76 @@ final class WaterStore: ObservableObject {
 
     var remainingML: Int { max(0, goalML - intakeML) }
 
+    var lastDrink: DrinkEntry? { today.entries.last }
+
     /// Rolls over to a new day when the app returns from the background past midnight.
     func refreshDay() {
         let key = WaterStore.key(for: Date())
-        if key != todayKey {
-            todayKey = key
-        }
-        if history[key] == nil {
-            history[key] = DayRecord(date: key, intakeML: 0, goalML: goalML)
-            persistHistory()
-        }
-        syncTodayGoal()
+        if key != todayKey { todayKey = key }
+        let day = ensureDayLog(for: key)
+        day.apply(goalML: goalML)
+        commit(day)
     }
+
+    private func syncTodayGoal() {
+        let day = ensureDayLog(for: todayKey)
+        guard day.goalML != goalML else { return }
+        day.apply(goalML: goalML)
+        commit(day)
+    }
+
+    /// The one write path: save, refresh the published snapshot, recompute the
+    /// cached stats. Nothing else is allowed to touch the context.
+    private func commit(_ day: DayLog) {
+        try? context.save()
+        today = day.snapshot
+        recomputeStats()
+    }
+
+    // MARK: - Logging
+
+    /// Logs a drink. Only the hydrating share counts toward the goal, so a
+    /// 12 oz coffee moves the ring slightly less than 12 oz of water.
+    func log(_ kind: DrinkKind) {
+        append(DrinkEntry(kind: kind, volumeML: volumeML(for: kind)))
+    }
+
+    /// Logs part of the user's own bottle: a quarter, a half, or the lot.
+    func logBottle(_ fraction: Double) {
+        let millilitres = Int((Double(bottleSizeML) * fraction).rounded())
+        append(DrinkEntry(kind: .water, volumeML: millilitres, bottleFraction: fraction))
+    }
+
+    private func append(_ entry: DrinkEntry) {
+        let day = ensureDayLog(for: todayKey)
+        let drink = DrinkLog(entry: entry)
+        drink.day = day
+        context.insert(drink)
+        day.apply(intakeML: day.intakeML + entry.hydrationML)
+        commit(day)
+    }
+
+    /// Removes the most recent drink, the fix for a mis-tap.
+    func undoLast() {
+        let day = ensureDayLog(for: todayKey)
+        guard let last = day.entries.max(by: { $0.time < $1.time }) else { return }
+        day.apply(intakeML: day.intakeML - last.hydrationML)
+        context.delete(last)
+        commit(day)
+    }
+
+    func reset() {
+        let day = ensureDayLog(for: todayKey)
+        for drink in day.entries { context.delete(drink) }
+        day.apply(intakeML: 0)
+        commit(day)
+    }
+
+    func setGoal(_ amount: Int) {
+        manualGoalML = min(max(250, amount), 10000)
+    }
+
+    // MARK: - Quick drinks and sizes
 
     var quickDrinks: [DrinkKind] {
         quickDrinkIDs.compactMap(DrinkKind.init(rawValue:))
@@ -214,132 +331,75 @@ final class WaterStore: ObservableObject {
         sizeOverrides.removeValue(forKey: kind.rawValue)
     }
 
-    /// Logs a drink. Only the hydrating share counts toward the goal, so a
-    /// 12 oz coffee moves the ring slightly less than 12 oz of water.
-    func log(_ kind: DrinkKind) {
-        append(DrinkEntry(kind: kind, volumeML: volumeML(for: kind)))
-    }
-
-    /// Logs part of the user's own bottle: a quarter, a half, or the lot.
-    func logBottle(_ fraction: Double) {
-        let millilitres = Int((Double(bottleSizeML) * fraction).rounded())
-        append(DrinkEntry(kind: .water, volumeML: millilitres, bottleFraction: fraction))
-    }
-
-    private func append(_ entry: DrinkEntry) {
-        var record = todayRecord
-        record.entries.append(entry)
-        record.intakeML = max(0, record.intakeML + entry.hydrationML)
-        history[todayKey] = record
-        persistHistory()
-    }
-
     /// How many bottle-fulls today's goal works out to.
     var goalInBottles: Double {
         guard bottleSizeML > 0 else { return 0 }
         return Double(goalML) / Double(bottleSizeML)
     }
 
-    /// Removes the most recent drink — the fix for a mis-tap.
-    func undoLast() {
-        var record = todayRecord
-        guard let last = record.entries.popLast() else { return }
-        record.intakeML = max(0, record.intakeML - last.hydrationML)
-        history[todayKey] = record
-        persistHistory()
+    // MARK: - Stats
+
+    private func recomputeStats() {
+        currentStreak = computeCurrentStreak()
+        averageIntake = computeAverageIntake()
     }
-
-    var lastDrink: DrinkEntry? { todayRecord.entries.last }
-
-    func reset() {
-        var record = todayRecord
-        record.intakeML = 0
-        record.entries = []
-        history[todayKey] = record
-        persistHistory()
-    }
-
-    func setGoal(_ amount: Int) {
-        manualGoalML = min(max(250, amount), 10000)
-    }
-
-    // MARK: - Streaks
 
     /// Consecutive days hitting the goal. Today only counts once the goal is met,
     /// so an unfinished day never reads as a broken streak.
-    var currentStreak: Int {
-        var streak = 0
+    ///
+    /// Only days that met the goal are fetched, newest first, so the walk stops
+    /// at the first gap instead of scanning the whole history.
+    private func computeCurrentStreak() -> Int {
+        var descriptor = FetchDescriptor<DayLog>(
+            predicate: #Predicate { $0.metGoal },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.propertiesToFetch = [\.date]
+        guard let met = try? context.fetch(descriptor), !met.isEmpty else { return 0 }
+
+        let metKeys = Set(met.map(\.date))
+        let calendar = Calendar.current
         var day = Date()
 
-        if !(history[WaterStore.key(for: day)]?.metGoal ?? false) {
-            guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: day) else {
-                return 0
-            }
+        // An unfinished today is not a broken streak, so start from yesterday.
+        if !metKeys.contains(WaterStore.key(for: day)) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: day) else { return 0 }
             day = yesterday
         }
 
-        while let record = history[WaterStore.key(for: day)], record.metGoal {
+        var streak = 0
+        while metKeys.contains(WaterStore.key(for: day)) {
             streak += 1
-            guard let previous = Calendar.current.date(byAdding: .day, value: -1, to: day) else { break }
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
             day = previous
         }
         return streak
     }
 
-    var bestStreak: Int {
-        let metDays = history.values.filter(\.metGoal).map(\.date).sorted()
-        guard !metDays.isEmpty else { return 0 }
-
-        var best = 1
-        var running = 1
-        for index in 1..<metDays.count {
-            guard let previous = WaterStore.date(from: metDays[index - 1]),
-                  let current = WaterStore.date(from: metDays[index]),
-                  let expected = Calendar.current.date(byAdding: .day, value: 1, to: previous) else {
-                running = 1
-                continue
-            }
-            if Calendar.current.isDate(current, inSameDayAs: expected) {
-                running += 1
-            } else {
-                running = 1
-            }
-            best = max(best, running)
-        }
-        return best
+    private func computeAverageIntake() -> Int {
+        var descriptor = FetchDescriptor<DayLog>(predicate: #Predicate { $0.intakeML > 0 })
+        descriptor.propertiesToFetch = [\.intakeML]
+        guard let logged = try? context.fetch(descriptor), !logged.isEmpty else { return 0 }
+        return logged.reduce(0) { $0 + $1.intakeML } / logged.count
     }
-
-    var daysGoalMet: Int { history.values.filter(\.metGoal).count }
 
     // MARK: - History
 
     /// The last `count` days ending today, with untracked days filled in as zero.
     func recentDays(_ count: Int) -> [DayRecord] {
         let calendar = Calendar.current
-        return (0..<count).reversed().compactMap { offset in
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: Date()) else { return nil }
-            let key = WaterStore.key(for: day)
-            return history[key] ?? DayRecord(date: key, intakeML: 0, goalML: goalML)
+        let keys: [String] = (0..<count).reversed().compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: Date()).map(WaterStore.key(for:))
+        }
+        let found = days(withKeys: keys)
+        return keys.map { key in
+            found[key]?.snapshot ?? DayRecord(date: key, intakeML: 0, goalML: goalML)
         }
     }
 
-    /// Every tracked day, newest first.
-    var loggedDays: [DayRecord] {
-        history.values
-            .filter { $0.intakeML > 0 }
-            .sorted { $0.date > $1.date }
-    }
-
-    var averageIntake: Int {
-        let logged = loggedDays
-        guard !logged.isEmpty else { return 0 }
-        return logged.reduce(0) { $0 + $1.intakeML } / logged.count
-    }
-
-    private func persistHistory() {
-        if let data = try? JSONEncoder().encode(history) {
-            defaults.set(data, forKey: historyKey)
-        }
+    /// Every day in the given keys that has something logged, as values.
+    func records(forKeys keys: [String]) -> [String: DayRecord] {
+        days(withKeys: keys).mapValues(\.snapshot)
     }
 
     // MARK: - Date helpers

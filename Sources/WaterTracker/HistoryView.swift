@@ -30,7 +30,7 @@ struct HistoryView: View {
         .tint(Brand.ink)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { key in
-            DayDetailView(dateKey: key, record: store.history[key], goalML: store.goalML)
+            DayDetailView(dateKey: key, record: store.record(for: key), goalML: store.goalML)
                 .presentationDetents([.medium, .large])
         }
     }
@@ -200,15 +200,20 @@ struct HistoryView: View {
             MonthDay(id: "pad-\($0)", key: "", number: "", record: nil, isToday: false, isFuture: true)
         }
 
-        for offset in 0..<range.count {
-            guard let date = calendar.date(byAdding: .day, value: offset, to: first) else { continue }
+        // One query for the month, not one per cell.
+        let dates = (0..<range.count).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: first)
+        }
+        let records = store.records(forKeys: dates.map(WaterStore.key(for:)))
+
+        for date in dates {
             let key = WaterStore.key(for: date)
             days.append(
                 MonthDay(
                     id: key,
                     key: key,
                     number: "\(calendar.component(.day, from: date))",
-                    record: store.history[key],
+                    record: records[key],
                     isToday: calendar.isDateInToday(date),
                     isFuture: date > today && !calendar.isDateInToday(date)
                 )
