@@ -61,7 +61,7 @@ struct HistoryView: View {
                 .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
 
                 RuleMark(y: .value("Goal", Double(store.goalML) / Double(Glass.ml)))
-                    .foregroundStyle(.gray.opacity(0.45))
+                    .foregroundStyle(Brand.ink.opacity(0.35))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 4]))
             }
             .chartXAxis {
@@ -73,12 +73,8 @@ struct HistoryView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(Brand.ground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(Brand.ink.opacity(0.28), lineWidth: Brand.hairline)
-                )
+            RoundedRectangle(cornerRadius: Brand.radiusContainer)
+                .fill(Brand.surface)
         )
     }
 
@@ -150,12 +146,8 @@ struct HistoryView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(Brand.ground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(Brand.ink.opacity(0.28), lineWidth: Brand.hairline)
-                )
+            RoundedRectangle(cornerRadius: Brand.radiusContainer)
+                .fill(Brand.surface)
         )
     }
 
@@ -248,7 +240,7 @@ struct HistoryView: View {
         .foregroundStyle(Brand.cream)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Brand.cobalt))
+        .background(RoundedRectangle(cornerRadius: Brand.radiusTile).fill(Brand.cobalt))
     }
 
     private func sectionTitle(_ text: String) -> some View {
@@ -270,13 +262,13 @@ private struct DayCell: View {
     /// White once the water is deep enough to swallow dark text.
     private var dayLabelColor: Color {
         if progress > 0.55 { return Brand.cream }
-        return isFuture ? Brand.inkFaint.opacity(0.5) : Brand.inkSoft
+        return isFuture ? Brand.inkFaint : Brand.inkSoft
     }
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 9)
-                .fill(Brand.cobalt.opacity(isFuture ? 0.05 : 0.12))
+            RoundedRectangle(cornerRadius: Brand.radiusChip)
+                .fill(isFuture ? Brand.ground : Brand.cobalt.opacity(0.16))
 
             GeometryReader { geometry in
                 VStack(spacing: 0) {
@@ -286,7 +278,7 @@ private struct DayCell: View {
                         .frame(height: geometry.size.height * min(progress, 1))
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .clipShape(RoundedRectangle(cornerRadius: Brand.radiusChip))
 
             Text(label)
                 .font(.caption2.weight(isToday ? .bold : .regular))
@@ -294,10 +286,13 @@ private struct DayCell: View {
                 .foregroundStyle(dayLabelColor)
 
             if metGoal {
-                RoundedRectangle(cornerRadius: 9).strokeBorder(Brand.cobalt, lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: Brand.radiusChip).strokeBorder(Brand.cobalt, lineWidth: 1.5)
             }
             if isToday {
-                RoundedRectangle(cornerRadius: 9).strokeBorder(Color.orange, lineWidth: 2)
+                // Orange is the streak flame and nothing else. A second accent
+                // on the calendar was decoration pretending to be meaning.
+                RoundedRectangle(cornerRadius: Brand.radiusChip)
+                    .strokeBorder(Brand.ink, lineWidth: 2)
             }
         }
         .aspectRatio(1, contentMode: .fit)

@@ -105,7 +105,7 @@ struct ProfileView: View {
                 Text("Result")
                     .foregroundStyle(Brand.inkSoft)
             } footer: {
-                Text("A general wellness estimate from body weight, age, sex and activity — not medical advice. Ask a doctor if you have a condition that affects fluid intake.")
+                Text("A general wellness estimate from body weight, age, sex and activity. It is not medical advice. Ask a doctor if you have a condition that affects fluid intake.")
                     .foregroundStyle(Brand.inkSoft)
             }
             .listRowBackground(Brand.rowFill)

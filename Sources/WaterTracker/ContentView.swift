@@ -45,7 +45,7 @@ struct ContentView: View {
                 if let note = weatherNote {
                     Label(note, systemImage: "thermometer.sun.fill")
                         .font(.app(.footnote))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Brand.flame)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal)
@@ -77,7 +77,7 @@ struct ContentView: View {
                                 .padding(.vertical, 15)
                                 .foregroundStyle(Brand.cream)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 18).fill(Brand.cobalt)
+                                    RoundedRectangle(cornerRadius: Brand.radiusTile).fill(Brand.cobalt)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -91,13 +91,19 @@ struct ContentView: View {
                         }
                     }
 
+                    // The system bordered style tints itself grey-lavender,
+                    // which is the one colour the palette does not contain.
                     Button {
                         showingMoreDrinks = true
                     } label: {
                         Label("More drinks", systemImage: "ellipsis.circle")
-                            .font(.app(.subheadline, weight: .medium))
+                            .font(.app(.subheadline, weight: .semibold))
+                            .foregroundStyle(Brand.cobalt)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Brand.surface))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
 
@@ -192,7 +198,7 @@ struct ContentView: View {
                 .foregroundStyle(store.currentStreak > 0 ? Brand.flame : Brand.inkSoft)
             Text(streakMessage)
                 .font(.app(.subheadline, weight: .medium))
-                .foregroundStyle(store.currentStreak > 0 ? .primary : .secondary)
+                .foregroundStyle(store.currentStreak > 0 ? Brand.ink : Brand.inkSoft)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -203,7 +209,7 @@ struct ContentView: View {
 
     private var streakMessage: String {
         switch store.currentStreak {
-        case 0: return "No streak yet — hit your goal today"
+        case 0: return "No streak yet. Hit your goal today."
         case 1: return "1 day streak"
         default: return "\(store.currentStreak) day streak"
         }
@@ -316,7 +322,9 @@ struct ContentView: View {
                         store.logBottle(pour.fraction)
                     } label: {
                         VStack(spacing: 5) {
-                            // A miniature bottle, filled to this fraction.
+                            // A miniature bottle, filled to this fraction. It
+                            // is a drawing rather than a container of UI, so its
+                            // radius is deliberately off the chrome scale.
                             ZStack(alignment: .bottom) {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Brand.cobalt.opacity(0.16))
@@ -336,7 +344,7 @@ struct ContentView: View {
                         .padding(.vertical, 11)
                         .foregroundStyle(Brand.ink)
                         .background(
-                            RoundedRectangle(cornerRadius: 13)
+                            RoundedRectangle(cornerRadius: Brand.radiusTile)
                                 .fill(Brand.ground)
                         )
                     }
@@ -352,7 +360,7 @@ struct ContentView: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 20).fill(Brand.cobalt.opacity(0.07))
+            RoundedRectangle(cornerRadius: Brand.radiusContainer).fill(Brand.surface)
         )
     }
 
@@ -371,14 +379,14 @@ struct ContentView: View {
         guard store.useAutoGoal,
               let conditions = weather.conditions,
               conditions.extraML > 0 else { return nil }
-        return "\(conditions.city) feels like \(conditions.heatIndexF)°F — goal raised \(Volume.label(conditions.extraML))"
+        return "\(conditions.city) feels like \(conditions.heatIndexF)°F, so today's goal is up \(Volume.label(conditions.extraML))"
     }
 
     private var progressMessage: String {
         if store.intakeML == 0 {
             return "Nothing logged yet. Tap what you drank."
         } else if store.progress >= 1.0 {
-            return "Goal reached! Great job staying hydrated today."
+            return "Goal reached. Anything else today is a bonus."
         } else {
             return "\(Volume.label(store.remainingML)) to go, about \(Glass.format(store.remainingML)) glasses."
         }

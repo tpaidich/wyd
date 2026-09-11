@@ -106,9 +106,9 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                     }
                     if conditions.isHeatwave {
-                        Label("Extreme heat — drink more than usual", systemImage: "thermometer.sun.fill")
+                        Label("Extreme heat. Drink more than usual.", systemImage: "thermometer.sun.fill")
                             .font(.app(.footnote))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Brand.flame)
                     }
                 } else if weather.isLoading {
                     HStack {
@@ -230,7 +230,7 @@ struct SettingsView: View {
     }
 
     private var weatherBonusText: String {
-        guard let conditions = weather.conditions else { return "—" }
+        guard let conditions = weather.conditions else { return "Not set" }
         return conditions.extraML == 0 ? "none needed" : "+\(Volume.label(conditions.extraML))"
     }
 

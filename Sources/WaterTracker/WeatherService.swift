@@ -56,7 +56,7 @@ struct WeatherConditions: Equatable {
 
     var summary: String {
         if heatIndexF > temperatureF {
-            return "\(temperatureF)°F, \(Int(humidity))% humidity — feels like \(heatIndexF)°F"
+            return "\(temperatureF)°F, \(Int(humidity))% humidity, feels like \(heatIndexF)°F"
         }
         return "\(temperatureF)°F, \(Int(humidity))% humidity"
     }

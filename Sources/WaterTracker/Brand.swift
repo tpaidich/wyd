@@ -13,6 +13,10 @@ enum Brand {
 
     /// Page background: cream in light, cobalt-black in dark.
     static let ground = Color("Ground")
+    /// Cards and wells sit one step down from the page, in the cream family.
+    /// Tinting them with cobalt instead desaturates against warm cream and
+    /// comes out grey, which is what made every card read dead.
+    static let surface = Color("Surface")
     /// Ink for type and rules.
     static let ink = Color("Ink")
 
@@ -30,7 +34,13 @@ enum Brand {
     static let inkFaint = Color("InkFaint")
 
     static let hairline = 2.0   // the logo's line is confident, not thin
-    static let radius = 18.0
+
+    /// One radius scale, three steps, and a rule for which to use: containers
+    /// that hold other things, tiles you can tap, chips inside a tile. Pills
+    /// stay capsules. Anything outside this scale is illustration, not chrome.
+    static let radiusContainer: CGFloat = 22
+    static let radiusTile: CGFloat = 16
+    static let radiusChip: CGFloat = 10
 }
 
 

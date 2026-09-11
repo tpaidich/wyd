@@ -14,7 +14,7 @@ struct DrinkInfoView: View {
                         Spacer()
                         Text(effectLabel(for: kind))
                             .font(.app(.subheadline, weight: .medium))
-                            .foregroundStyle(isNegative(kind) ? .orange : .secondary)
+                            .foregroundStyle(isNegative(kind) ? Brand.flame : Brand.inkSoft)
                     }
                     Text(kind.rationale)
                         .font(.app(.footnote))

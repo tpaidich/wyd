@@ -74,7 +74,7 @@ struct DayDetailView: View {
                                         Text("counts \(Volume.label(entry.hydrationML))")
                                             .font(.app(.caption2))
                                             .foregroundStyle(
-                                                entry.hydrationML < 0 ? .orange : .secondary
+                                                entry.hydrationML < 0 ? Brand.flame : Brand.inkSoft
                                             )
                                     }
                                 }
