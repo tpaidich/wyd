@@ -11,7 +11,7 @@ struct HistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 14) {
                 Image("HistoryHeader")
                     .renderable()
                     .frame(maxWidth: 128)
@@ -24,7 +24,7 @@ struct HistoryView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
-            .padding(.bottom, 20)
+            .padding(.bottom, 16)
         }
         .background(Brand.ground)
         .tint(Brand.ink)
@@ -69,7 +69,9 @@ struct HistoryView: View {
                     AxisValueLabel(format: .dateTime.weekday(.narrow))
                 }
             }
-            .frame(height: 160)
+            // Short enough that a six-row month still clears the fold. The
+            // curve only has to show the shape of the week, not be read off.
+            .frame(height: 96)
         }
         .padding(16)
         .background(
