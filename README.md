@@ -32,3 +32,21 @@ open WaterTracker.xcodeproj
 ```
 
 Requires iOS 17 or later.
+
+## Running it on a phone
+
+```
+./scripts/install-on-phone.sh
+```
+
+Plug the phone in and unlock it first. The script finds the device, builds,
+signs and installs.
+
+A free Apple ID signs apps for seven days, so Wyd stops opening after a week.
+The app is never removed and neither is anything you logged, since the history
+lives in the app's own database; only the signature expires. Run the script
+again to renew it. The Apple Developer Program lifts this to a year, and brings
+TestFlight with it, which is the only practical way onto someone else's phone.
+
+`project.yml` carries a `DEVELOPMENT_TEAM`. Building on another machine means
+replacing it with that machine's own team.
