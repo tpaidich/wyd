@@ -264,10 +264,11 @@ private struct DayCell: View {
     var isFuture: Bool
     var label: String
 
-    /// White once the water is deep enough to swallow dark text.
-    private var dayLabelColor: Color {
-        if progress > 0.55 { return Brand.cream }
-        return isFuture ? Brand.inkFaint : Brand.inkSoft
+    private var level: Double { min(max(progress, 0), 1) }
+
+    /// The colour for the part of the numeral sitting above the water.
+    private var dryColor: Color {
+        isFuture ? Brand.inkFaint : Brand.inkSoft
     }
 
     var body: some View {
@@ -280,15 +281,27 @@ private struct DayCell: View {
                     Spacer(minLength: 0)
                     Rectangle()
                         .fill(Brand.cobalt)
-                        .frame(height: geometry.size.height * min(progress, 1))
+                        .frame(height: geometry.size.height * level)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: Brand.radiusChip))
 
-            Text(label)
-                .font(.caption2.weight(isToday ? .bold : .regular))
-                .monospacedDigit()
-                .foregroundStyle(dayLabelColor)
+            // The numeral is cut by the waterline itself, so each half of a
+            // digit gets the colour that reads against what is behind it.
+            // Flipping the whole numeral at one threshold left it illegible
+            // for the stretch where the water was crossing the digits, which
+            // on a half-full day is exactly where the water sits.
+            numeral(dryColor)
+
+            numeral(Brand.cream)
+                .mask(
+                    GeometryReader { geometry in
+                        VStack(spacing: 0) {
+                            Color.clear
+                            Color.black.frame(height: geometry.size.height * level)
+                        }
+                    }
+                )
 
             if metGoal {
                 RoundedRectangle(cornerRadius: Brand.radiusChip).strokeBorder(Brand.cobalt, lineWidth: 1.5)
@@ -301,6 +314,14 @@ private struct DayCell: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+    }
+
+    private func numeral(_ color: Color) -> some View {
+        Text(label)
+            .font(.app(.caption2, weight: isToday ? .bold : .regular))
+            .monospacedDigit()
+            .foregroundStyle(color)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
