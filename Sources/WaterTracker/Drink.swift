@@ -254,4 +254,10 @@ enum Glass {
             ? String(Int(rounded))
             : String(format: "%.1f", rounded)
     }
+
+    /// "1 glass", "3.5 glasses" - the count with a noun that agrees with it.
+    static func label(_ millilitres: Int) -> String {
+        let count = format(millilitres)
+        return count == "1" ? "1 glass" : "\(count) glasses"
+    }
 }

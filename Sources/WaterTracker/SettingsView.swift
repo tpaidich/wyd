@@ -236,7 +236,7 @@ struct SettingsView: View {
 
     private var glassesText: String {
         let millilitres = Int((goalInput * Volume.mlPerOz).rounded())
-        return "≈ \(Glass.format(millilitres)) glasses"
+        return "≈ \(Glass.label(millilitres))"
     }
 
     private var scheduleSummary: String {

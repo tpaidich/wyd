@@ -365,9 +365,9 @@ struct ContentView: View {
     }
 
     private var bottleSummary: String {
-        let glasses = Glass.format(store.bottleSizeML)
+        let glasses = Glass.label(store.bottleSizeML)
         let bottles = String(format: "%.1f", store.goalInBottles)
-        return "A full bottle is \(glasses) glasses. Today's goal is about \(bottles) bottles."
+        return "A full bottle is \(glasses). Today's goal is about \(bottles) bottles."
     }
 
     private var undoLabel: String {
@@ -388,7 +388,7 @@ struct ContentView: View {
         } else if store.progress >= 1.0 {
             return "Goal reached. Anything else today is a bonus."
         } else {
-            return "\(Volume.label(store.remainingML)) to go, about \(Glass.format(store.remainingML)) glasses."
+            return "\(Volume.label(store.remainingML)) to go, about \(Glass.label(store.remainingML))."
         }
     }
 }

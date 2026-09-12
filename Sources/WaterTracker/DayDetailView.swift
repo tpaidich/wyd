@@ -18,7 +18,7 @@ struct DayDetailView: View {
                         Text(Glass.format(intake))
                             .font(.display(detailCountSize, weight: .bold))
                             .monospacedDigit()
-                        Text("of \(Glass.format(goal)) glasses")
+                        Text("of \(Glass.label(goal))")
                             .font(.app(.subheadline))
                             .foregroundStyle(Brand.inkSoft)
                     }
